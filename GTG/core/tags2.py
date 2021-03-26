@@ -66,7 +66,7 @@ class TagStore(BaseStore):
         return f'Tag Store. Holds {len(self.lookup)} tag(s)'
 
 
-    def get(name: str) -> Tag2:
+    def get(self, name: str) -> Tag2:
         """Get a tag by name."""
 
         return self.lookup[name]
