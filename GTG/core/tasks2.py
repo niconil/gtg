@@ -26,7 +26,7 @@ import datetime
 from lxml.etree import Element, SubElement
 
 from GTG.core.base_store import BaseStore
-from GTG.core.tags2 import Tag2
+from GTG.core.tags2 import Tag2, TagStore
 from GTG.core.dates import Date
 
 log = logging.getLogger(__name__)
@@ -230,7 +230,7 @@ class TaskStore(BaseStore):
         return task
 
 
-    def from_xml(self, xml: Element) -> None:
+    def from_xml(self, xml: Element, tag_store: TagStore) -> None:
 
         elements = list(xml.iter(self.XML_TAG))
 
@@ -242,11 +242,11 @@ class TaskStore(BaseStore):
 
             dates = element.find('dates')
 
-            modified = dates.findText('modified')
-            task.date_modified = Date(datetime.fromisoformat(modified))
+            modified = dates.find('modified').text
+            task.date_modified = Date(datetime.datetime.fromisoformat(modified))
 
-            added = dates.findText('added').text
-            task.date_added = Date(datetime.fromisoformat(added))
+            added = dates.find('added').text
+            task.date_added = Date(datetime.datetime.fromisoformat(added))
 
             # Dates
             try:
@@ -268,17 +268,17 @@ class TaskStore(BaseStore):
             start = dates.findtext('start')
 
             if fuzzy_start:
-                task.set_start_date(fuzzy_start)
+                task.date_start = fuzzy_start
             elif start:
-                task.set_start_date(start)
+                task.date_start = start
 
             taglist = element.find('tags')
 
             if taglist is not None:
-                [task.tag_added_by_id(t.text) for t in taglist.iter('tag')]
+                [tag_store.get(t.text) for t in taglist.iter('tag')]
 
             # Content
-            content = element.findText('content') or ''
+            content = element.find('content').text or ''
             content = content.replace(']]&gt;', ']]>')
             task.content = content
 
@@ -300,12 +300,6 @@ class TaskStore(BaseStore):
 
         root = Element('Tasklist')
 
-        parent_map = {}
-
-        for task in self.data:
-            for child in task.children:
-                parent_map[child.id] = task.id
-
         for task in self.lookup.values():
             element = SubElement(root, self.XML_TAG)
             element.set('id', str(task.id))
@@ -318,7 +312,7 @@ class TaskStore(BaseStore):
 
             for t in task.get_tags():
                 tag_tag = SubElement(tags, 'tag')
-                tag_tag.text = str(t.tid)
+                tag_tag.text = str(t.id)
 
             dates = SubElement(element, 'dates')
 
