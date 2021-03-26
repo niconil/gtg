@@ -21,7 +21,7 @@ from uuid import uuid4
 import datetime
 
 from GTG.core.tasks2 import Task2, Status, TaskStore
-from GTG.core.tags2 import Tag2
+from GTG.core.tags2 import Tag2, TagStore
 from GTG.core.dates import Date
 
 from lxml.etree import Element, SubElement, XML
@@ -264,27 +264,143 @@ class TestTask2(TestCase):
         self.assertEqual(len(child_task.children), 0)
 
 
+    def test_xml_load_simple(self):
+        task_store = TaskStore()
+        tag_store = TagStore()
+
+        TAG_ID = '6f1ba7b3-a797-44b9-accd-303adaf04073'
+        TASK_ID = '1d34df07-4185-43ad-adbd-698a86193411'
+
+        tag = Tag2(id=TAG_ID, name='My Tag')
+        tag_store.add(tag)
+
+        parsed_xml = XML(f'''
+        <tasklist>
+            <task id="{TASK_ID}" status="Active" recurring="False">
+                <tags>
+                    <tag>{TAG_ID}</tag>
+                </tags>
+                <title>My Task</title>
+                <dates>
+                    <added>2020-10-23T00:00:00</added>
+                    <modified>2021-03-20T14:55:46.219761</modified>
+                    <done></done>
+                    <fuzzyDue></fuzzyDue>
+                    <start>2010-07-20</start>
+                </dates>
+                <recurring enabled="false">
+                    <term>None</term>
+                </recurring>
+                <subtasks/>
+                <content><![CDATA[ My Content ]]></content>
+            </task>
+        </tasklist>
+        ''')
+
+        task_store.from_xml(parsed_xml, tag_store)
+        self.assertEqual(task_store.count(), 1)
+
+
     def test_xml_load_tree(self):
-        store = TaskStore()
-        XML = ()
+        task_store = TaskStore()
 
-        store.from_xml(XML)
+        TASK_ID_1 = uuid4()
+        TASK_ID_2 = uuid4()
+        TASK_ID_3 = uuid4()
+        TASK_ID_4 = uuid4()
 
+        parsed_xml = XML(f'''
+        <tasklist>
+            <task id="{TASK_ID_1}" status="Active" recurring="False">
+                <title>My Task</title>
+                <dates>
+                    <added>2020-10-23T00:00:00</added>
+                    <modified>2021-03-20T14:55:46.219761</modified>
+                    <done></done>
+                    <fuzzyDue></fuzzyDue>
+                    <start>2010-07-20</start>
+                </dates>
+                <recurring enabled="false">
+                    <term>None</term>
+                </recurring>
+                <subtasks>
+                    <sub>{TASK_ID_2}</sub>
+                    <sub>{TASK_ID_3}</sub>
+                </subtasks>
+
+                <content><![CDATA[ My Content ]]></content>
+            </task>
+
+            <task id="{TASK_ID_2}" status="Active" recurring="False">
+                <title>My Task</title>
+                <dates>
+                    <added>2020-10-23T00:00:00</added>
+                    <modified>2021-03-20T14:55:46.219761</modified>
+                    <done></done>
+                    <fuzzyDue></fuzzyDue>
+                    <start>2010-07-20</start>
+                </dates>
+                <recurring enabled="false">
+                    <term>None</term>
+                </recurring>
+                <subtasks/>
+                <content><![CDATA[ My Content ]]></content>
+            </task>
+
+            <task id="{TASK_ID_3}" status="Active" recurring="False">
+                <title>My Task</title>
+                <dates>
+                    <added>2020-10-23T00:00:00</added>
+                    <modified>2021-03-20T14:55:46.219761</modified>
+                    <done></done>
+                    <fuzzyDue></fuzzyDue>
+                    <start>2010-07-20</start>
+                </dates>
+                <recurring enabled="false">
+                    <term>None</term>
+                </recurring>
+                <subtasks>
+                    <sub>{TASK_ID_4}</sub>
+                </subtasks>
+
+                <content><![CDATA[ My Content ]]></content>
+            </task>
+
+            <task id="{TASK_ID_4}" status="Active" recurring="False">
+                <title>My Task</title>
+                <dates>
+                    <added>2020-10-23T00:00:00</added>
+                    <modified>2021-03-20T14:55:46.219761</modified>
+                    <done></done>
+                    <fuzzyDue></fuzzyDue>
+                    <start>2010-07-20</start>
+                </dates>
+                <recurring enabled="false">
+                    <term>None</term>
+                </recurring>
+                <subtasks/>
+                <content><![CDATA[ My Content ]]></content>
+            </task>
+        </tasklist>
+        ''')
+
+        task_store.from_xml(parsed_xml, None)
+        self.assertEqual(task_store.count(), 4)
 
     def test_xml_load_bad(self):
         store = TaskStore()
         XML = ()
 
-        store.from_xml(XML)
+        # store.from_xml(XML)
 
 
     def test_xml_write_simple(self):
         store = TaskStore()
-        xml = store.to_xml()
+        # xml = store.to_xml()
 
 
     def test_xml_write_tree(self):
         store = TaskStore()
 
-        xml = store.to_xml()
+        # xml = store.to_xml()
 
