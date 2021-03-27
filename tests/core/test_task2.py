@@ -386,21 +386,66 @@ class TestTask2(TestCase):
 
         task_store.from_xml(parsed_xml, None)
         self.assertEqual(task_store.count(), 4)
+        self.assertEqual(task_store.count(root_only=True), 1)
+        self.assertEqual(len(task_store.get(str(TASK_ID_1)).children), 2)
+
 
     def test_xml_load_bad(self):
-        store = TaskStore()
-        XML = ()
+        task_store = TaskStore()
 
-        # store.from_xml(XML)
+        TASK_ID_1 = uuid4()
+        TASK_ID_2 = uuid4()
+
+        parsed_xml = XML(f'''
+        <tasklist>
+            <task id="{TASK_ID_1}" status="Active" recurring="False">
+                <title>My Task</title>
+                <dates>
+                    <added>2020-10-23T00:00:00</added>
+                    <modified>2021-03-20T14:55:46.219761</modified>
+                    <done></done>
+                    <fuzzyDue></fuzzyDue>
+                    <start>2010-07-20</start>
+                </dates>
+                <recurring enabled="false">
+                    <term>None</term>
+                </recurring>
+                <subtasks>
+                    <sub>lol</sub>
+                </subtasks>
+
+                <content><![CDATA[ My Content ]]></content>
+            </task>
+
+            <task id="{TASK_ID_2}" status="Active" recurring="False">
+                <title>My Task</title>
+                <dates>
+                    <added>2020-10-23T00:00:00</added>
+                    <modified>2021-03-20T14:55:46.219761</modified>
+                    <done></done>
+                    <fuzzyDue></fuzzyDue>
+                    <start>2010-07-20</start>
+                </dates>
+                <recurring enabled="false">
+                    <term>None</term>
+                </recurring>
+                <subtasks/>
+                <content><![CDATA[ My Content ]]></content>
+            </task>
+        </tasklist>
+        ''')
+
+        with self.assertRaises(KeyError):
+            task_store.from_xml(parsed_xml, None)
 
 
     def test_xml_write_simple(self):
-        store = TaskStore()
-        # xml = store.to_xml()
+        task_store = TaskStore()
 
+        task_store.new('My Task')
+        task_store.new('My Other Task')
+        task_store.new('My Other Other Task')
+        task_store.new('My Other Other Other Task')
 
-    def test_xml_write_tree(self):
-        store = TaskStore()
-
-        # xml = store.to_xml()
-
+        xml_root = task_store.to_xml()
+        self.assertEqual(len(xml_root), 4)
