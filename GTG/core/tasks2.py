@@ -23,7 +23,7 @@ from enum import Enum
 import re
 import datetime
 
-from lxml.etree import Element, SubElement
+from lxml.etree import Element, SubElement, CDATA
 
 from GTG.core.base_store import BaseStore
 from GTG.core.tags2 import Tag2, TagStore
@@ -237,6 +237,7 @@ class TaskStore(BaseStore):
         for element in elements:
             tid = element.get('id')
             title = element.find('title').text
+            status = element.get('status')
 
             task = Task2(id=tid, title=title)
 
@@ -248,10 +249,14 @@ class TaskStore(BaseStore):
             added = dates.find('added').text
             task.date_added = Date(datetime.datetime.fromisoformat(added))
 
+            if status == 'Done':
+                task.status = Status.DONE
+            elif status == 'Dismissed':
+                task.status = Status.DISMISSED
+
             # Dates
             try:
                 closed = Date.parse(dates.find('done').text)
-                task.toggle_status()
                 task.date_closed = closed
             except AttributeError:
                 pass
@@ -303,14 +308,20 @@ class TaskStore(BaseStore):
         for task in self.lookup.values():
             element = SubElement(root, self.XML_TAG)
             element.set('id', str(task.id))
-            element.set('status', task.status)
+
+            if task.status == Status.ACTIVE:
+                element.set('status', 'Active')
+            elif task.status == Status.DONE:
+                element.set('status', 'Done')
+            else:
+                element.set('status', 'Dismissed')
 
             title = SubElement(element, 'title')
             title.text = task.title
 
             tags = SubElement(element, 'tags')
 
-            for t in task.get_tags():
+            for t in task.tags:
                 tag_tag = SubElement(tags, 'tag')
                 tag_tag.text = str(t.id)
 
@@ -323,20 +334,20 @@ class TaskStore(BaseStore):
             modified_date.text = task.date_modified.xml_str()
 
             done_date = SubElement(dates, 'done')
-            done_date.text = task.date_done.xml_str()
+            done_date.text = task.date_closed.xml_str()
 
             due_date = task.due_date
             due_tag = 'fuzzyDue' if due_date.is_fuzzy() else 'due'
-            due = etree.SubElement(dates, due_tag)
+            due = SubElement(dates, due_tag)
             due.text = due_date.xml_str()
 
             start_date = task.date_start
             start_tag = 'fuzzyStart' if start_date.is_fuzzy() else 'start'
-            start = etree.SubElement(dates, start_tag)
+            start = SubElement(dates, start_tag)
             start.text = start_date.xml_str()
 
             for subtask in task.children:
-                sub = etree.SubElement(subtasks, 'sub')
+                sub = SubElement(subtasks, 'sub')
                 sub.text = subtask.id
 
             content = SubElement(element, 'content')
@@ -345,7 +356,7 @@ class TaskStore(BaseStore):
             # Poor man's encoding.
             # CDATA's only poison is this combination of characters.
             text = text.replace(']]>', ']]&gt;')
-            content.text = etree.CDATA(text)
+            content.text = CDATA(text)
 
         return root
 
